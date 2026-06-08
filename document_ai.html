@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask API UI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">GlobalFPO API Testing</h1>
+
+        <!-- File Upload Section -->
+        <div class="mt-4">
+            <h3>Upload File(pdf,csv,xlsx,txt,pptx,ppt,docx,doc,jpg,jpeg,png)</h3>
+            <form id="uploadForm">
+                <div class="mb-3">
+                    <label for="fileInput" class="form-label">Select File:</label>
+                    <input type="file" id="fileInput" class="form-control" 
+                           accept=".pdf,.csv,.xlsx,.txt,.pptx,.ppt,.docx,.doc,.jpg,.jpeg,.png,.gif" required>
+                </div>
+                <div class="mb-3">
+                    <label for="sessionId" class="form-label">Session ID (optional):</label>
+                    <input type="text" id="sessionId" class="form-control" placeholder="Leave empty to auto-generate">
+                </div>
+                <button type="submit" class="btn btn-primary">Upload File</button>
+            </form>
+            <div id="uploadStatus" class="mt-3"></div>
+        </div>
+
+        <hr>
+
+        <!-- Query Section -->
+        <div class="mt-4">
+            <h3>Query With Your Uploaded File</h3>
+            <form id="queryForm">
+                <div class="mb-3">
+                    <label for="queryPrompt" class="form-label">Enter Query:</label>
+                    <textarea id="queryPrompt" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="querySessionId" class="form-label">Session ID:</label>
+                    <input type="text" id="querySessionId" class="form-control" placeholder="Enter session ID from upload">
+                </div>
+                <button type="submit" class="btn btn-primary">Send Query</button>
+            </form>
+            <div id="queryResult" class="mt-3"></div>
+        </div>
+
+        <hr>
+
+        <!-- Chat Query Section -->
+        <div class="mt-4">
+            <h3>Chat with AI</h3>
+            <form id="chatForm">
+                <div class="mb-3">
+                    <label for="chatPrompt" class="form-label">Enter Chat Prompt:</label>
+                    <textarea id="chatPrompt" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="chatSessionId" class="form-label">Session ID:</label>
+                    <input type="text" id="chatSessionId" class="form-control" placeholder="Enter session ID from upload">
+                </div>
+                <button type="submit" class="btn btn-primary">Send Chat Query</button>
+            </form>
+            <div id="chatResult" class="mt-3"></div>
+        </div>
+    </div>
+
+    <script>
+        const apiBaseUrl = "http://4.255.211.63"; //http://localhost:5001   http://20.193.132.219   //http://4.255.211.63   #http://127.0.0.1:5000   #http://4.255.211.63
+
+        // Upload File
+        document.getElementById("uploadForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const fileInput = document.getElementById("fileInput");
+            const file = fileInput.files[0];
+            const sessionId = document.getElementById("sessionId").value;
+
+            if (!file) {
+                alert("Please select a file.");
+                return;
+            }
+
+            const supportedExtensions = [
+                "pdf", "csv", "xlsx", "txt", "pptx", "ppt", "docx", "doc", "jpg", "jpeg", "png", "gif"
+            ];
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+
+            if (!supportedExtensions.includes(fileExtension)) {
+                alert(`Unsupported file type: ${fileExtension}`);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+            if (sessionId) {
+                formData.append("session_id", sessionId);
+            }
+
+            try {
+                const response = await axios.post(`${apiBaseUrl}/upload_pdf`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                document.getElementById("uploadStatus").innerHTML = `
+                    <div class="alert alert-success">File uploaded successfully. Session ID: ${response.data.session_id}</div>`;
+            } catch (error) {
+                document.getElementById("uploadStatus").innerHTML = `
+                    <div class="alert alert-danger">Error uploading file: ${error.response?.data?.error || error.message}</div>`;
+            }
+        });
+
+        // Query LLM
+        document.getElementById("queryForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const prompt = document.getElementById("queryPrompt").value;
+            const sessionId = document.getElementById("querySessionId").value;
+
+            if (!sessionId) {
+                alert("Please provide a session ID.");
+                return;
+            }
+
+            try {
+                const response = await axios.post(`${apiBaseUrl}/query`, {
+                    session_id: sessionId,
+                    prompt: prompt,
+                });
+                document.getElementById("queryResult").innerHTML = `
+                    <div class="alert alert-success">Response: ${response.data.respone}</div>`;
+            } catch (error) {
+                document.getElementById("queryResult").innerHTML = `
+                    <div class="alert alert-danger">Error: ${error.response?.data?.error}</div>`;
+            }
+        });
+
+        // Chat with LLM
+        document.getElementById("chatForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const prompt = document.getElementById("chatPrompt").value;
+            const sessionId = document.getElementById("chatSessionId").value;
+
+            if (!sessionId) {
+                alert("Please provide a session ID.");
+                return;
+            }
+
+            try {
+                const response = await axios.post(`${apiBaseUrl}/chatquery`, {
+                    session_id: sessionId,
+                    prompt: prompt,
+                });
+                document.getElementById("chatResult").innerHTML = `
+                    <div class="alert alert-success">Response: ${response.data.respone}</div>`;
+            } catch (error) {
+                document.getElementById("chatResult").innerHTML = `
+                    <div class="alert alert-danger">Error: ${error.response?.data?.error}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
